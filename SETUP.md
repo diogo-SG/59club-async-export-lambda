@@ -31,13 +31,14 @@ Edit `.env` with your configuration:
 # =============================================================================
 # Application URLs (REQUIRED - update with your actual URLs)
 # =============================================================================
-BASE_URL=https://app.59club.com
+FRONTEND_URL=https://app.59club.com
 BACKEND_URL=https://api.59club.com
 
 # =============================================================================
-# Authentication (REQUIRED - get from your backend)
+# Service Account Authentication (REQUIRED - get from your backend)
 # =============================================================================
-ACCESS_TOKEN=your_service_account_bearer_token_here
+SERVICE_EMAIL=service-account@yourcompany.com
+SERVICE_PASSWORD=your_service_account_password
 
 # =============================================================================
 # Testing Configuration (REQUIRED)
@@ -49,15 +50,17 @@ TEST_ADMIN_EMAILS=admin@yourcompany.com,manager@yourcompany.com
 
 ### 3. How to Get Your Configuration Values
 
-#### **ACCESS_TOKEN**
-This should be a service account bearer token from your backend authentication system:
+#### **SERVICE_EMAIL and SERVICE_PASSWORD**
+These should be service account credentials from your backend authentication system:
 
 ```bash
-# Example: Get token from your backend
-curl -X POST https://api.59club.com/auth/service-login \
+# Example: Test login with your service account
+curl -X POST https://api.59club.com/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"clientId": "your-service-client", "clientSecret": "your-secret"}'
+  -d '{"email": "service-account@yourcompany.com", "password": "your-password"}'
 ```
+
+The Lambda will use these credentials to perform a login and get an access token automatically.
 
 #### **TEST_SURVEY_ID and TEST_PARTICIPANT_ID**
 Use existing survey and participant IDs from your database that you can safely test with.
@@ -128,9 +131,9 @@ This uses mock services to test the Lambda structure.
 ```
 
 **Solutions:**
-- Verify your `ACCESS_TOKEN` is valid and not expired
+- Verify your `SERVICE_EMAIL` and `SERVICE_PASSWORD` are correct
 - Check that your service account has the right permissions
-- Ensure your backend `/auth/verify` endpoint exists
+- Ensure your backend `/auth/login` endpoint exists and accepts email/password
 
 ### URL Accessibility Errors
 
@@ -139,7 +142,7 @@ This uses mock services to test the Lambda structure.
 ```
 
 **Solutions:**
-- Verify `BASE_URL` and `BACKEND_URL` are correct and accessible
+- Verify `FRONTEND_URL` and `BACKEND_URL` are correct and accessible
 - Check if you're behind a VPN or firewall
 - Test URLs manually in your browser
 
@@ -256,9 +259,10 @@ echo "EMAIL_TIMEOUT_MS=60000" >> .env
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `BASE_URL` | ✅ | Your frontend URL | `https://app.59club.com` |
+| `FRONTEND_URL` | ✅ | Your frontend URL | `https://app.59club.com` |
 | `BACKEND_URL` | ✅ | Your backend API URL | `https://api.59club.com` |
-| `ACCESS_TOKEN` | ✅ | Service account bearer token | `eyJhbGciOiJIUzI1NiIs...` |
+| `SERVICE_EMAIL` | ✅ | Service account email | `service@yourcompany.com` |
+| `SERVICE_PASSWORD` | ✅ | Service account password | `secure-password-123` |
 | `TEST_SURVEY_ID` | ✅ | Survey ID for testing | `survey-123` |
 | `TEST_PARTICIPANT_ID` | ✅ | Participant ID for testing | `participant-456` |
 | `TEST_ADMIN_EMAILS` | ✅ | Comma-separated admin emails | `admin@company.com,manager@company.com` |

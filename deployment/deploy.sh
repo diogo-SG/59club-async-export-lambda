@@ -134,6 +134,7 @@ deploy_stack() {
             --parameters \
                 ParameterKey=FunctionName,ParameterValue="$FUNCTION_NAME" \
                 ParameterKey=Environment,ParameterValue="$ENVIRONMENT" \
+                ParameterKey=DeploymentMethod,ParameterValue="inline" \
             --capabilities CAPABILITY_NAMED_IAM \
             --region "$REGION"
         
@@ -141,13 +142,14 @@ deploy_stack() {
             --stack-name "$STACK_NAME" \
             --region "$REGION"
     else
-        log_info "Creating new stack..."
+        log_info "Creating new stack with inline deployment..."
         aws cloudformation create-stack \
             --stack-name "$STACK_NAME" \
             --template-body file://deployment/cloudformation.yaml \
             --parameters \
                 ParameterKey=FunctionName,ParameterValue="$FUNCTION_NAME" \
                 ParameterKey=Environment,ParameterValue="$ENVIRONMENT" \
+                ParameterKey=DeploymentMethod,ParameterValue="inline" \
             --capabilities CAPABILITY_NAMED_IAM \
             --region "$REGION"
         

@@ -22,14 +22,32 @@ Parameters:
   MaxRetries:
     Type: Number
     Default: 3
-    MinValue: 1
-    MaxValue: 5
     Description: Maximum retry attempts for operations
   
   AllowedDomains:
     Type: CommaDelimitedList
     Default: "59club.com,app.59club.com,api.59club.com"
     Description: Comma-separated list of allowed domains
+
+  DeploymentMethod:
+    Type: String
+    Default: zip
+    AllowedValues: [zip, inline]
+    Description: Deployment method - zip for production, inline for initial setup
+
+  S3Bucket:
+    Type: String
+    Default: ""
+    Description: S3 bucket containing the deployment ZIP file (required if DeploymentMethod is zip)
+
+  S3Key:
+    Type: String
+    Default: "function.zip"
+    Description: S3 key for the deployment ZIP file
+
+Conditions:
+  UseZipDeployment: !Equals [!Ref DeploymentMethod, zip]
+  UseInlineDeployment: !Equals [!Ref DeploymentMethod, inline]
 
 Resources:
   # Lambda Execution Role
@@ -70,14 +88,20 @@ Resources:
       Runtime: nodejs18.x
       Handler: src/index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            return {
-              statusCode: 200,
-              body: JSON.stringify({ message: 'Placeholder - Deploy actual code' })
+      Code: !If
+        - UseZipDeployment
+        - S3Bucket: !Ref S3Bucket
+          S3Key: !Ref S3Key
+        - ZipFile: |
+            exports.handler = async (event) => {
+              return {
+                statusCode: 200,
+                body: JSON.stringify({ 
+                  message: 'Placeholder - Deploy actual code with ZIP upload',
+                  note: 'Update function code using: aws lambda update-function-code --function-name [name] --zip-file fileb://function.zip'
+                })
+              };
             };
-          };
       MemorySize: 2048
       Timeout: 180
       EphemeralStorage:
@@ -139,12 +163,6 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PDFExportLambda.Arn}/invocations"
-      MethodResponses:
-        - StatusCode: 200
-          ResponseHeaders:
-            Access-Control-Allow-Origin: true
-        - StatusCode: 400
-        - StatusCode: 500
 
   # API Gateway Method (OPTIONS for CORS)
   ApiMethodOptions:
@@ -167,9 +185,9 @@ Resources:
       MethodResponses:
         - StatusCode: 200
           ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
 
   # API Gateway Deployment
   ApiDeployment:
@@ -205,7 +223,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: FunctionName
-          Value: !Ref FunctionName
+          Value: !Ref PDFExportLambda
 
   # CloudWatch Alarm for Lambda Duration
   LambdaDurationAlarm:
@@ -222,7 +240,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: FunctionName
-          Value: !Ref FunctionName
+          Value: !Ref PDFExportLambda
 
 Outputs:
   LambdaFunctionArn:

@@ -12,9 +12,10 @@ const MOCK_EVENT = {
     surveyId: "test-survey-123",
     participantId: "test-participant-456",
     adminEmails: ["admin@test.com", "manager@test.com"],
-    baseUrl: "https://app.test.59club.com",
+    frontendUrl: "https://app.test.59club.com",
     backendUrl: "https://api.test.59club.com",
-    accessToken: "test-bearer-token-12345",
+    serviceEmail: "service@test.com",
+    servicePassword: "test-password-123",
   }),
   headers: {
     "Content-Type": "application/json",

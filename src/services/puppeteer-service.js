@@ -17,10 +17,10 @@ class PuppeteerService {
   /**
    * Main method to generate PDF
    * @param {Object} params - Generation parameters
-   * @returns {Object} - { browser, pdfBuffer }
+   * @returns {Object} - { browser, pdfBuffer, accessToken }
    */
   async generatePDF(params) {
-    const { surveyId, participantId, baseUrl, backendUrl, accessToken } = params;
+    const { surveyId, participantId, frontendUrl, backendUrl, serviceEmail, servicePassword } = params;
 
     logger.info("Starting PDF generation process", {
       requestId: this.requestId,
@@ -35,15 +35,22 @@ class PuppeteerService {
       // Create new page for authentication
       const authPage = await browser.newPage();
 
-      // Perform authentication via browser context
-      await this.authenticateViaPuppeteer(authPage, backendUrl, accessToken);
+      // Perform authentication via browser context and get access token
+      const accessToken = await this.authenticateViaPuppeteer(authPage, backendUrl, serviceEmail, servicePassword);
 
       // Create new page for PDF generation with download monitoring
       const pdfPage = await browser.newPage();
+
+      // Set authorization header on the PDF page as well
+      await pdfPage.setExtraHTTPHeaders({
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      });
+
       await this.setupDownloadMonitoring(pdfPage);
 
       // Navigate to export URL and trigger PDF download
-      const exportUrl = `${baseUrl}/en-GB/surveys/${surveyId}/results/by-user?download=pdf&participantIds=${participantId}&asyncExport=true`;
+      const exportUrl = `${frontendUrl}/en-GB/surveys/${surveyId}/results/by-user?download=pdf&participantIds=${participantId}&asyncExport=true`;
 
       logger.info("Navigating to export URL", {
         requestId: this.requestId,
@@ -57,7 +64,7 @@ class PuppeteerService {
         pdfSize: pdfBuffer.length,
       });
 
-      return { browser, pdfBuffer };
+      return { browser, pdfBuffer, accessToken };
     } catch (error) {
       logger.error("Error during PDF generation", {
         requestId: this.requestId,
@@ -133,15 +140,18 @@ class PuppeteerService {
   }
 
   /**
-   * Authenticate using browser context (more reliable than server-side fetch)
+   * Authenticate using browser context by performing login with service account
    * @param {Object} page - Puppeteer page instance
    * @param {string} backendUrl - Backend API URL
-   * @param {string} accessToken - Access token for authentication
+   * @param {string} serviceEmail - Service account email
+   * @param {string} servicePassword - Service account password
+   * @returns {string} - Access token obtained from login
    */
-  async authenticateViaPuppeteer(page, backendUrl, accessToken) {
+  async authenticateViaPuppeteer(page, backendUrl, serviceEmail, servicePassword) {
     logger.info("Starting browser-context authentication", {
       requestId: this.requestId,
       backendUrl,
+      serviceEmail,
     });
 
     try {
@@ -150,28 +160,35 @@ class PuppeteerService {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
       );
 
-      // Set authorization header
-      await page.setExtraHTTPHeaders({
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      });
-
-      // Test authentication by making a request to a protected endpoint
+      // Perform login to get access token
       const authResult = await page.evaluate(
-        async (backendUrl, accessToken) => {
+        async (backendUrl, serviceEmail, servicePassword) => {
           try {
-            const response = await fetch(`${backendUrl}/auth/verify`, {
+            const response = await fetch(`${backendUrl}/auth/login`, {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${accessToken}`,
                 "Content-Type": "application/json",
               },
+              body: JSON.stringify({
+                email: serviceEmail,
+                password: servicePassword,
+              }),
             });
 
+            if (!response.ok) {
+              return {
+                success: false,
+                status: response.status,
+                statusText: response.statusText,
+              };
+            }
+
+            const data = await response.json();
             return {
-              success: response.ok,
+              success: true,
               status: response.status,
-              statusText: response.statusText,
+              accessToken: data.accessToken || data.token || data.access_token,
+              user: data.user,
             };
           } catch (error) {
             return {
@@ -181,17 +198,31 @@ class PuppeteerService {
           }
         },
         backendUrl,
-        accessToken
+        serviceEmail,
+        servicePassword
       );
 
       if (!authResult.success) {
-        throw new Error(`Authentication failed: ${authResult.error || authResult.statusText}`);
+        throw new Error(`Login failed: ${authResult.error || authResult.statusText} (${authResult.status})`);
       }
+
+      if (!authResult.accessToken) {
+        throw new Error("Login response missing access token");
+      }
+
+      // Set authorization header for subsequent requests
+      await page.setExtraHTTPHeaders({
+        Authorization: `Bearer ${authResult.accessToken}`,
+        "Content-Type": "application/json",
+      });
 
       logger.info("Browser-context authentication successful", {
         requestId: this.requestId,
         status: authResult.status,
+        userEmail: authResult.user?.email,
       });
+
+      return authResult.accessToken;
     } catch (error) {
       logger.error("Browser-context authentication failed", {
         requestId: this.requestId,

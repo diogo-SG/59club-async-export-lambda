@@ -11,7 +11,7 @@ const validateInput = (input) => {
   const errors = [];
 
   // Check required fields
-  const requiredFields = ["surveyId", "participantId", "adminEmails", "baseUrl", "backendUrl", "accessToken"];
+  const requiredFields = ["surveyId", "participantId", "adminEmails", "frontendUrl", "backendUrl", "serviceEmail", "servicePassword"];
 
   for (const field of requiredFields) {
     if (!input[field]) {
@@ -44,11 +44,11 @@ const validateInput = (input) => {
     }
   }
 
-  if (input.baseUrl) {
+  if (input.frontendUrl) {
     try {
-      new URL(input.baseUrl);
+      new URL(input.frontendUrl);
     } catch (e) {
-      errors.push("baseUrl must be a valid URL");
+      errors.push("frontendUrl must be a valid URL");
     }
   }
 
@@ -60,8 +60,12 @@ const validateInput = (input) => {
     }
   }
 
-  if (input.accessToken && typeof input.accessToken !== "string") {
-    errors.push("accessToken must be a string");
+  if (input.serviceEmail && typeof input.serviceEmail !== "string") {
+    errors.push("serviceEmail must be a string");
+  }
+
+  if (input.servicePassword && typeof input.servicePassword !== "string") {
+    errors.push("servicePassword must be a string");
   }
 
   return {
