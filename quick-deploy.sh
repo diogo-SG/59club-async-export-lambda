@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Quick deploy script - no CloudFormation needed
-# Usage: ./quick-deploy.sh [function-name] [region]
+# Usage: ./quick-deploy.sh [function-name] [region] [env-type]
+# Examples:
+#   ./quick-deploy.sh pdf-export-dev us-east-1 dev
+#   ./quick-deploy.sh pdf-export-prod us-east-1 prod
 
 set -e
 
 FUNCTION_NAME=${1:-59club-pdf-export-lambda}
 REGION=${2:-us-east-1}
+ENV_TYPE=${3:-prod}
 
 # Colors
 RED='\033[0;31m'
@@ -14,9 +18,33 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Set environment-specific URLs
+case $ENV_TYPE in
+    dev)
+        FRONTEND_URL="https://app-dev.59club.com"
+        BACKEND_URL="https://api-dev.59club.com"
+        ;;
+    staging)
+        FRONTEND_URL="https://app-staging.59club.com" 
+        BACKEND_URL="https://api-staging.59club.com"
+        ;;
+    prod)
+        FRONTEND_URL="https://app.59club.com"
+        BACKEND_URL="https://api.59club.com"
+        ;;
+    *)
+        echo -e "${RED}❌ Invalid environment type: $ENV_TYPE${NC}"
+        echo "Valid options: dev, staging, prod"
+        exit 1
+        ;;
+esac
+
 echo -e "${BLUE}🚀 Quick Deploy to Lambda${NC}"
 echo "Function: $FUNCTION_NAME"
 echo "Region: $REGION"
+echo "Environment: $ENV_TYPE"
+echo "Frontend URL: $FRONTEND_URL"
+echo "Backend URL: $BACKEND_URL"
 echo ""
 
 # Check if function exists
@@ -48,15 +76,17 @@ if [ "$FUNCTION_EXISTS" = true ]; then
         --memory-size 2048 \
         --timeout 180 \
         --ephemeral-storage Size=1024 \
-        --environment Variables='{
-            "NODE_ENV": "production",
-            "LOG_LEVEL": "info", 
-            "TIMEOUT_MS": "150000",
-            "MAX_RETRIES": "3",
-            "UPLOAD_TIMEOUT_MS": "60000",
-            "EMAIL_TIMEOUT_MS": "30000",
-            "MAX_FILE_SIZE_MB": "50"
-        }' \
+        --environment Variables="{
+            \"NODE_ENV\": \"production\",
+            \"LOG_LEVEL\": \"info\", 
+            \"TIMEOUT_MS\": \"150000\",
+            \"MAX_RETRIES\": \"3\",
+            \"UPLOAD_TIMEOUT_MS\": \"60000\",
+            \"EMAIL_TIMEOUT_MS\": \"30000\",
+            \"MAX_FILE_SIZE_MB\": \"50\",
+            \"FRONTEND_URL\": \"$FRONTEND_URL\",
+            \"BACKEND_URL\": \"$BACKEND_URL\"
+        }" \
         --region "$REGION"
 else
     echo -e "${RED}❌ Function doesn't exist. Please create it first:${NC}"
@@ -70,13 +100,11 @@ fi
 
 # Test function
 echo -e "${BLUE}🧪 Testing function...${NC}"
-cat > /tmp/test-event.json << 'EOF'
+cat > /tmp/test-event.json << EOF
 {
     "surveyId": "test-123",
     "participantId": "test-456", 
     "adminEmails": ["test@example.com"],
-    "frontendUrl": "https://app.59club.com",
-    "backendUrl": "https://api.59club.com", 
     "serviceEmail": "test@example.com",
     "servicePassword": "test-password"
 }

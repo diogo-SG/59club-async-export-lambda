@@ -75,3 +75,5 @@ chrome-downloads/
 # Local Lambda testing
 .lambda-local/
 sam-local/
+
+.env

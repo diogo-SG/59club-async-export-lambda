@@ -40,7 +40,11 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { surveyId, participantId, adminEmails, frontendUrl, backendUrl, serviceEmail, servicePassword } = input;
+    const { surveyId, participantId, adminEmails, serviceEmail, servicePassword } = input;
+
+    // Use URLs from request or fall back to environment variables
+    const frontendUrl = input.frontendUrl || process.env.FRONTEND_URL;
+    const backendUrl = input.backendUrl || process.env.BACKEND_URL;
 
     logger.info("Processing PDF export request", {
       requestId,

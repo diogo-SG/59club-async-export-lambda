@@ -11,20 +11,24 @@ const validateInput = (input) => {
   const errors = [];
 
   // Check required fields
-  const requiredFields = [
-    "surveyId",
-    "participantId",
-    "adminEmails",
-    "frontendUrl",
-    "backendUrl",
-    "serviceEmail",
-    "servicePassword",
-  ];
+  const requiredFields = ["surveyId", "participantId", "adminEmails", "serviceEmail", "servicePassword"];
+
+  // URLs are optional if set as environment variables
+  const optionalFields = ["frontendUrl", "backendUrl"];
 
   for (const field of requiredFields) {
     if (!input[field]) {
       errors.push(`Missing required field: ${field}`);
     }
+  }
+
+  // Check optional fields - use environment variables as fallback
+  if (!input.frontendUrl && !process.env.FRONTEND_URL) {
+    errors.push("frontendUrl must be provided in request or FRONTEND_URL environment variable must be set");
+  }
+
+  if (!input.backendUrl && !process.env.BACKEND_URL) {
+    errors.push("backendUrl must be provided in request or BACKEND_URL environment variable must be set");
   }
 
   // Validate specific field types and formats

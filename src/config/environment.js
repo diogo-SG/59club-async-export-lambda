@@ -34,9 +34,10 @@ const loadConfig = () => {
     mockServices: process.env.MOCK_SERVICES === "true",
 
     // Testing configuration
-    testBaseUrl: process.env.TEST_BASE_URL || "https://app.test.59club.com",
+    testFrontendUrl: process.env.TEST_FRONTEND_URL || "https://app.test.59club.com",
     testBackendUrl: process.env.TEST_BACKEND_URL || "https://api.test.59club.com",
-    testAccessToken: process.env.TEST_ACCESS_TOKEN || "",
+    testServiceEmail: process.env.TEST_SERVICE_EMAIL || "",
+    testServicePassword: process.env.TEST_SERVICE_PASSWORD || "",
   };
 
   // Validate required configuration in production
