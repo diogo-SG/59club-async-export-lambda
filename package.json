@@ -1,0 +1,38 @@
+{
+  "name": "59club-async-export-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda function for handling PDF report generation with Puppeteer",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/local-test.js",
+    "test:backend": "node test/test-with-backend.js",
+    "test:check": "node test/test-with-backend.js check",
+    "build": "npm install --production",
+    "package": "zip -r function.zip src/ node_modules/",
+    "deploy": "aws lambda update-function-code --function-name pdf-export-lambda --zip-file fileb://function.zip"
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.5.0",
+    "@sparticuz/chromium": "^118.0.0",
+    "axios": "^1.6.0",
+    "form-data": "^4.0.0",
+    "aws-lambda": "^1.0.7",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "aws-lambda",
+    "puppeteer",
+    "pdf-generation",
+    "serverless",
+    "report-export"
+  ],
+  "author": "Studio Graphene",
+  "license": "MIT"
+}
