@@ -34,8 +34,8 @@ const loadConfig = () => {
     mockServices: process.env.MOCK_SERVICES === "true",
 
     // Testing configuration
-    testFrontendUrl: process.env.TEST_FRONTEND_URL || "https://app.test.59club.com",
-    testBackendUrl: process.env.TEST_BACKEND_URL || "https://api.test.59club.com",
+    testFrontendUrl: process.env.TEST_FRONTEND_URL || "https://app.test.com",
+    testBackendUrl: process.env.TEST_BACKEND_URL || "https://api.test.com",
     testServiceEmail: process.env.TEST_SERVICE_EMAIL || "",
     testServicePassword: process.env.TEST_SERVICE_PASSWORD || "",
   };
@@ -64,7 +64,7 @@ const getLambdaSettings = () => {
     memorySize: 2048, // MB - Required for Chrome binary extraction
     timeout: Math.ceil(config.timeout / 1000), // Convert to seconds
     ephemeralStorageSize: 1024, // MB - For /tmp files
-    runtime: "nodejs18.x",
+    runtime: "nodejs22.x",
     environment: {
       LOG_LEVEL: config.logLevel,
       TIMEOUT_MS: config.timeout.toString(),

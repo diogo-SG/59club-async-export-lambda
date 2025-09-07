@@ -11,10 +11,7 @@ const validateInput = (input) => {
   const errors = [];
 
   // Check required fields
-  const requiredFields = ["surveyId", "participantId", "adminEmails", "serviceEmail", "servicePassword"];
-
-  // URLs are optional if set as environment variables
-  const optionalFields = ["frontendUrl", "backendUrl"];
+  const requiredFields = ["surveyId", "participantId", "adminEmails", "env"];
 
   for (const field of requiredFields) {
     if (!input[field]) {
@@ -22,13 +19,21 @@ const validateInput = (input) => {
     }
   }
 
-  // Check optional fields - use environment variables as fallback
-  if (!input.frontendUrl && !process.env.FRONTEND_URL) {
-    errors.push("frontendUrl must be provided in request or FRONTEND_URL environment variable must be set");
+  // Check service credentials - use environment variables as fallback
+  if (!input.serviceEmail && !process.env.SERVICE_EMAIL) {
+    errors.push("serviceEmail must be provided in request or SERVICE_EMAIL environment variable must be set");
   }
 
-  if (!input.backendUrl && !process.env.BACKEND_URL) {
-    errors.push("backendUrl must be provided in request or BACKEND_URL environment variable must be set");
+  if (!input.servicePassword && !process.env.SERVICE_PASSWORD) {
+    errors.push("servicePassword must be provided in request or SERVICE_PASSWORD environment variable must be set");
+  }
+
+  // Validate environment
+  if (input.env) {
+    const validEnvironments = ["local", "dev", "qa", "staging", "prod"];
+    if (!validEnvironments.includes(input.env)) {
+      errors.push(`Invalid environment: ${input.env}. Must be one of: ${validEnvironments.join(", ")}`);
+    }
   }
 
   // Validate specific field types and formats
@@ -56,21 +61,7 @@ const validateInput = (input) => {
     }
   }
 
-  if (input.frontendUrl) {
-    try {
-      new URL(input.frontendUrl);
-    } catch (e) {
-      errors.push("frontendUrl must be a valid URL");
-    }
-  }
-
-  if (input.backendUrl) {
-    try {
-      new URL(input.backendUrl);
-    } catch (e) {
-      errors.push("backendUrl must be a valid URL");
-    }
-  }
+  // Environment validation is handled above
 
   if (input.serviceEmail && typeof input.serviceEmail !== "string") {
     errors.push("serviceEmail must be a string");
@@ -96,6 +87,38 @@ const sanitizeString = (input) => {
 
   // Remove potentially dangerous characters for file names and URLs
   return input.replace(/[<>:"/\\|?*\x00-\x1f]/g, "");
+};
+
+/**
+ * Get frontend and backend URLs based on environment
+ * @param {string} env - Environment name (local, dev, qa, staging, prod)
+ * @returns {Object} - URLs for frontend and backend
+ */
+const getEnvironmentUrls = (env) => {
+  const urlMappings = {
+    local: {
+      frontendUrl: "https://dev.survey.59club.studiographene.xyz",
+      backendUrl: "https://dev.surveyapi.59club.studiographene.xyz/api",
+    },
+    dev: {
+      frontendUrl: "https://dev.survey.59club.studiographene.xyz",
+      backendUrl: "https://dev.surveyapi.59club.studiographene.xyz/api",
+    },
+    qa: {
+      frontendUrl: "https://qa.survey.59club.studiographene.xyz",
+      backendUrl: "https://qa.surveyapi.59club.studiographene.xyz/api",
+    },
+    staging: {
+      frontendUrl: "https://staging.surveys.59club.com",
+      backendUrl: "https://staging.api.surveys.59club.com",
+    },
+    prod: {
+      frontendUrl: "https://staging.surveys.59club.com", // TBC, using staging for now
+      backendUrl: "https://staging.api.surveys.59club.com", // TBC, using staging for now
+    },
+  };
+
+  return urlMappings[env] || urlMappings.staging; // Default to staging if unknown env
 };
 
 /**
@@ -127,5 +150,6 @@ const isAllowedDomain = (url, allowedDomains = []) => {
 module.exports = {
   validateInput,
   sanitizeString,
+  getEnvironmentUrls,
   isAllowedDomain,
 };

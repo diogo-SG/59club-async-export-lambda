@@ -4,7 +4,7 @@ This guide will help you configure and test the PDF export Lambda function with 
 
 ## Prerequisites
 
-1. **Node.js 18.x or higher**
+1. **Node.js 22.x or higher**
 2. **Your 59Club backend running and accessible**
 3. **Service account credentials for authentication**
 4. **AWS CLI installed and configured** (for deployment)
@@ -31,8 +31,8 @@ Edit `.env` with your configuration:
 # =============================================================================
 # Application URLs (REQUIRED - update with your actual URLs)
 # =============================================================================
-FRONTEND_URL=https://app.59club.com
-BACKEND_URL=https://api.59club.com
+FRONTEND_URL=https://app.test.com
+BACKEND_URL=https://api.test.com
 
 # =============================================================================
 # Service Account Authentication (REQUIRED - get from your backend)
@@ -55,7 +55,7 @@ These should be service account credentials from your backend authentication sys
 
 ```bash
 # Example: Test login with your service account
-curl -X POST https://api.59club.com/auth/login \
+curl -X POST https://api.test.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "service-account@yourcompany.com", "password": "your-password"}'
 ```
@@ -199,23 +199,23 @@ npm run test:backend
    Survey ID: survey-123
    Participant ID: participant-456
    Admin Emails: admin@company.com, manager@company.com
-   Base URL: https://app.59club.com
-   Backend URL: https://api.59club.com
+   Base URL: https://app.test.com
+   Backend URL: https://api.test.com
    Token: eyJhbGciOiJIUzI1NiIs...
 
 🔗 Testing backend connectivity...
-   Testing https://api.59club.com...
+   Testing https://api.test.com...
    ✅ Backend health check: 200
    Testing authentication...
    ✅ Authentication: 200
-   Testing https://app.59club.com...
+   Testing https://app.test.com...
    ✅ Frontend connectivity: 200
 
 🚀 Executing Lambda function...
 ⏱️  Execution completed in 45320ms
 
 🎉 Integration test SUCCESSFUL!
-📄 PDF URL: https://storage.59club.com/exports/2024-01-15_survey-123.pdf
+📄 PDF URL: https://storage.test.com/exports/2024-01-15_survey-123.pdf
 📧 Email Status: PDF generated and emails sent successfully
 🆔 Request ID: local-test-aws-request
 ⏱️  Duration: 45320ms
@@ -259,8 +259,8 @@ echo "EMAIL_TIMEOUT_MS=60000" >> .env
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `FRONTEND_URL` | ✅ | Your frontend URL | `https://app.59club.com` |
-| `BACKEND_URL` | ✅ | Your backend API URL | `https://api.59club.com` |
+| `FRONTEND_URL` | ✅ | Your frontend URL | `https://app.test.com` |
+| `BACKEND_URL` | ✅ | Your backend API URL | `https://api.test.com` |
 | `SERVICE_EMAIL` | ✅ | Service account email | `service@yourcompany.com` |
 | `SERVICE_PASSWORD` | ✅ | Service account password | `secure-password-123` |
 | `TEST_SURVEY_ID` | ✅ | Survey ID for testing | `survey-123` |

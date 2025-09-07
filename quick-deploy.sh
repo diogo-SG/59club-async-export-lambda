@@ -21,16 +21,16 @@ NC='\033[0m'
 # Set environment-specific URLs
 case $ENV_TYPE in
     dev)
-        FRONTEND_URL="https://app-dev.59club.com"
-        BACKEND_URL="https://api-dev.59club.com"
+        FRONTEND_URL="https://app-dev.test.com"
+        BACKEND_URL="https://api-dev.test.com"
         ;;
     staging)
-        FRONTEND_URL="https://app-staging.59club.com" 
-        BACKEND_URL="https://api-staging.59club.com"
+        FRONTEND_URL="https://app-staging.test.com" 
+        BACKEND_URL="https://api-staging.test.com"
         ;;
     prod)
-        FRONTEND_URL="https://app.59club.com"
-        BACKEND_URL="https://api.59club.com"
+        FRONTEND_URL="https://app.test.com"
+        BACKEND_URL="https://api.test.com"
         ;;
     *)
         echo -e "${RED}❌ Invalid environment type: $ENV_TYPE${NC}"
@@ -93,7 +93,7 @@ else
     echo ""
     echo "1. Go to AWS Lambda Console"
     echo "2. Create function: $FUNCTION_NAME"
-    echo "3. Runtime: Node.js 18.x"
+    echo "3. Runtime: Node.js 22.x"
     echo "4. Then run this script again"
     exit 1
 fi

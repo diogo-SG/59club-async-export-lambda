@@ -15,7 +15,7 @@ This guide provides complete instructions for deploying the PDF export Lambda fu
   - CloudWatch logs and alarms
 
 ### 2. Development Environment
-- Node.js 18.x or higher
+- Node.js 22.x or higher
 - npm package manager
 - Git (for version control)
 
@@ -114,7 +114,7 @@ The Lambda function supports the following environment variables:
 | `Environment` | `production` | Deployment environment |
 | `LogLevel` | `info` | CloudWatch logging level |
 | `MaxRetries` | `3` | Retry configuration |
-| `AllowedDomains` | `59club.com,app.59club.com,api.59club.com` | Security domains |
+| `AllowedDomains` | `test.com,app.test.com,api.test.com` | Security domains |
 
 ## Testing the Deployment
 

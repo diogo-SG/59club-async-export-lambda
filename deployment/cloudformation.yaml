@@ -26,7 +26,7 @@ Parameters:
   
   AllowedDomains:
     Type: CommaDelimitedList
-    Default: "59club.com,app.59club.com,api.59club.com"
+    Default: "test.com,app.test.com,api.test.com"
     Description: Comma-separated list of allowed domains
 
   DeploymentMethod:
@@ -85,7 +85,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref FunctionName
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: src/index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Code: !If

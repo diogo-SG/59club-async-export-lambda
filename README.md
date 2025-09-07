@@ -24,8 +24,8 @@ Frontend (Next.js) → API Gateway → Lambda Function → Backend APIs
   "surveyId": "string",
   "participantId": "string", 
   "adminEmails": ["email1@example.com"],
-  "baseUrl": "https://app.59club.com",
-  "backendUrl": "https://api.59club.com",
+  "baseUrl": "https://app.test.com",
+  "backendUrl": "https://api.test.com",
   "accessToken": "bearer_token"
 }
 ```
@@ -41,7 +41,7 @@ Frontend (Next.js) → API Gateway → Lambda Function → Backend APIs
 
 ## Lambda Configuration
 
-- **Runtime**: Node.js 18.x
+- **Runtime**: Node.js 22.x
 - **Memory**: 2048 MB
 - **Timeout**: 180 seconds (3 minutes)
 - **Ephemeral Storage**: 1024 MB

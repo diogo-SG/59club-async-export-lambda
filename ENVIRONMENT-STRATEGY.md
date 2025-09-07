@@ -12,8 +12,8 @@ Since URLs are environment-specific, you have three deployment strategies:
 // Frontend calls Lambda with environment-specific URLs
 await invoke({
   surveyId: "123",
-  frontendUrl: "https://app-dev.59club.com",    // Environment-specific
-  backendUrl: "https://api-dev.59club.com",     // Environment-specific  
+  frontendUrl: "https://app-dev.test.com",    // Environment-specific
+  backendUrl: "https://api-dev.test.com",     // Environment-specific  
   serviceEmail: "dev-service@company.com",
   servicePassword: "dev-password"
 });
@@ -38,12 +38,12 @@ await invoke({
 Each with different environment variables:
 ```bash
 # DEV Lambda environment
-FRONTEND_URL=https://app-dev.59club.com
-BACKEND_URL=https://api-dev.59club.com
+FRONTEND_URL=https://app-dev.test.com
+BACKEND_URL=https://api-dev.test.com
 
 # PROD Lambda environment  
-FRONTEND_URL=https://app.59club.com
-BACKEND_URL=https://api.59club.com
+FRONTEND_URL=https://app.test.com
+BACKEND_URL=https://api.test.com
 ```
 
 **Request payload (simpler):**
@@ -73,8 +73,8 @@ The Lambda now accepts URLs in **either** the request **OR** environment variabl
 ```javascript
 await invoke({
   surveyId: "123",
-  frontendUrl: "https://app-dev.59club.com",  // Override env vars
-  backendUrl: "https://api-dev.59club.com",   // Override env vars
+  frontendUrl: "https://app-dev.test.com",  // Override env vars
+  backendUrl: "https://api-dev.test.com",   // Override env vars
   serviceEmail: "service@company.com",
   servicePassword: "password"
 });
@@ -98,8 +98,8 @@ await invoke({
 aws lambda update-function-configuration \
   --function-name 59club-async-export-lambda \
   --environment Variables='{
-    "FRONTEND_URL": "https://app.59club.com",
-    "BACKEND_URL": "https://api.59club.com"
+    "FRONTEND_URL": "https://app.test.com",
+    "BACKEND_URL": "https://api.test.com"
   }'
 ```
 
@@ -109,16 +109,16 @@ aws lambda update-function-configuration \
 aws lambda update-function-configuration \
   --function-name 59club-async-export-dev \
   --environment Variables='{
-    "FRONTEND_URL": "https://app-dev.59club.com", 
-    "BACKEND_URL": "https://api-dev.59club.com"
+    "FRONTEND_URL": "https://app-dev.test.com", 
+    "BACKEND_URL": "https://api-dev.test.com"
   }'
 
 # PROD Lambda
 aws lambda update-function-configuration \
   --function-name 59club-async-export-prod \
   --environment Variables='{
-    "FRONTEND_URL": "https://app.59club.com",
-    "BACKEND_URL": "https://api.59club.com"
+    "FRONTEND_URL": "https://app.test.com",
+    "BACKEND_URL": "https://api.test.com"
   }'
 ```
 

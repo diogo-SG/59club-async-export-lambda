@@ -19,8 +19,8 @@ nano .env
 **Required values in .env:**
 ```bash
 # Your actual URLs
-FRONTEND_URL=https://app.59club.com
-BACKEND_URL=https://api.59club.com
+FRONTEND_URL=https://app.test.com
+BACKEND_URL=https://api.test.com
 
 # Your service account credentials  
 SERVICE_EMAIL=diogoc2@sharklasers.com
@@ -36,7 +36,7 @@ TEST_ADMIN_EMAILS=your-email@company.com,another-admin@company.com
 
 ```bash
 # Test your service account login manually
-curl -X POST https://api.59club.com/auth/login \
+curl -X POST https://api.test.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "diogoc2@sharklasers.com",
@@ -58,7 +58,7 @@ curl -X POST https://api.59club.com/auth/login \
 ```bash
 # Test that your survey/participant exists
 # (Replace with your actual survey URL)
-curl "https://app.59club.com/en-GB/surveys/your-survey-id/results/by-user?participantIds=your-participant-id"
+curl "https://app.test.com/en-GB/surveys/your-survey-id/results/by-user?participantIds=your-participant-id"
 ```
 
 ## Step 4: Basic Connectivity Test
@@ -70,11 +70,11 @@ npm run test:check
 **Expected output:**
 ```
 🔗 Testing backend connectivity...
-   Testing https://api.59club.com...
+   Testing https://api.test.com...
    ✅ Backend health check: 200
    Testing service account login...
    ✅ Service account login: 200
-   Testing https://app.59club.com...
+   Testing https://app.test.com...
    ✅ Frontend connectivity: 200
 ```
 
@@ -111,8 +111,8 @@ npm run test:backend
    Survey ID: your-survey-id
    Participant ID: your-participant-id
    Admin Emails: your-email@company.com
-   Frontend URL: https://app.59club.com
-   Backend URL: https://api.59club.com
+   Frontend URL: https://app.test.com
+   Backend URL: https://api.test.com
    Service Email: diogoc2@sharklasers.com
    Service Password: **********
 
@@ -125,7 +125,7 @@ npm run test:backend
 ⏱️  Execution completed in 45000ms
 
 🎉 Integration test SUCCESSFUL!
-📄 PDF URL: https://storage.59club.com/exports/2024-01-15_survey-123.pdf
+📄 PDF URL: https://storage.test.com/exports/2024-01-15_survey-123.pdf
 📧 Email Status: PDF generated and emails sent successfully
 🆔 Request ID: local-test-aws-request
 ⏱️  Duration: 45000ms
@@ -149,8 +149,8 @@ aws lambda invoke \
     "surveyId": "your-survey-id",
     "participantId": "your-participant-id", 
     "adminEmails": ["your-email@company.com"],
-    "frontendUrl": "https://app.59club.com",
-    "backendUrl": "https://api.59club.com",
+    "frontendUrl": "https://app.test.com",
+    "backendUrl": "https://api.test.com",
     "serviceEmail": "diogoc2@sharklasers.com",
     "servicePassword": "MammaMia123!9"
   }' \

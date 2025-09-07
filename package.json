@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:local": "node test/local-server.js",
     "test": "node test/local-test.js",
     "test:backend": "node test/test-with-backend.js",
     "test:check": "node test/test-with-backend.js check",
@@ -28,7 +29,7 @@
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "keywords": [
     "aws-lambda",

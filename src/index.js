@@ -1,5 +1,5 @@
 const { logger } = require("./utils/logger");
-const { validateInput } = require("./utils/validation");
+const { validateInput, getEnvironmentUrls } = require("./utils/validation");
 const { PuppeteerService } = require("./services/puppeteer-service");
 const { UploadService } = require("./services/upload-service");
 const { EmailService } = require("./services/email-service");
@@ -40,20 +40,24 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { surveyId, participantId, adminEmails, serviceEmail, servicePassword } = input;
+    const { surveyId, participantId, adminEmails, env, serviceEmail, servicePassword } = input;
 
-    // Use URLs from request or fall back to environment variables
-    const frontendUrl = input.frontendUrl || process.env.FRONTEND_URL;
-    const backendUrl = input.backendUrl || process.env.BACKEND_URL;
+    // Get URLs based on environment
+    const { frontendUrl, backendUrl } = getEnvironmentUrls(env);
+
+    // Use service credentials from request or fall back to environment variables
+    const finalServiceEmail = serviceEmail || process.env.SERVICE_EMAIL;
+    const finalServicePassword = servicePassword || process.env.SERVICE_PASSWORD;
 
     logger.info("Processing PDF export request", {
       requestId,
       surveyId,
       participantId,
       adminEmailCount: adminEmails.length,
+      environment: env,
       frontendUrl,
       backendUrl,
-      serviceEmail,
+      serviceEmail: finalServiceEmail,
     });
 
     // Initialize services (upload and email services will get access token after PDF generation)
@@ -72,8 +76,8 @@ exports.handler = async (event, context) => {
         participantId,
         frontendUrl,
         backendUrl,
-        serviceEmail,
-        servicePassword,
+        serviceEmail: finalServiceEmail,
+        servicePassword: finalServicePassword,
       });
 
       browser = pdfResult.browser;

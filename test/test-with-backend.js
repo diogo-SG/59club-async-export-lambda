@@ -7,11 +7,11 @@ require("dotenv").config(); // Load environment variables from .env file
 
 const { handler } = require("../src/index");
 const { logger } = require("../src/utils/logger");
+const { getEnvironmentUrls } = require("../src/utils/validation");
 
 // Load configuration from environment variables
 const config = {
-  frontendUrl: process.env.FRONTEND_URL,
-  backendUrl: process.env.BACKEND_URL,
+  environment: process.env.TEST_ENVIRONMENT || "dev", // Default to dev environment
   serviceEmail: process.env.SERVICE_EMAIL,
   servicePassword: process.env.SERVICE_PASSWORD,
   testSurveyId: process.env.TEST_SURVEY_ID,
@@ -23,13 +23,17 @@ const config = {
 function validateConfig() {
   const errors = [];
 
-  if (!config.frontendUrl) errors.push("FRONTEND_URL not set in .env");
-  if (!config.backendUrl) errors.push("BACKEND_URL not set in .env");
   if (!config.serviceEmail) errors.push("SERVICE_EMAIL not set in .env");
   if (!config.servicePassword) errors.push("SERVICE_PASSWORD not set in .env");
   if (!config.testSurveyId) errors.push("TEST_SURVEY_ID not set in .env");
   if (!config.testParticipantId) errors.push("TEST_PARTICIPANT_ID not set in .env");
   if (config.testAdminEmails.length === 0) errors.push("TEST_ADMIN_EMAILS not set in .env");
+
+  // Validate environment
+  const validEnvironments = ["local", "dev", "qa", "staging", "prod"];
+  if (!validEnvironments.includes(config.environment)) {
+    errors.push(`TEST_ENVIRONMENT must be one of: ${validEnvironments.join(", ")} (got: ${config.environment})`);
+  }
 
   if (errors.length > 0) {
     console.error("❌ Configuration errors:");
@@ -46,8 +50,7 @@ function createTestEvent() {
       surveyId: config.testSurveyId,
       participantId: config.testParticipantId,
       adminEmails: config.testAdminEmails,
-      frontendUrl: config.frontendUrl,
-      backendUrl: config.backendUrl,
+      env: config.environment,
       serviceEmail: config.serviceEmail,
       servicePassword: config.servicePassword,
     }),
@@ -79,10 +82,11 @@ async function testBackendConnectivity() {
 
   try {
     const axios = require("axios");
+    const { frontendUrl, backendUrl } = getEnvironmentUrls(config.environment);
 
     // Test backend health
-    console.log(`   Testing ${config.backendUrl}...`);
-    const healthResponse = await axios.get(`${config.backendUrl}/health`, {
+    console.log(`   Testing ${backendUrl}...`);
+    const healthResponse = await axios.get(`${backendUrl}/health`, {
       timeout: 10000,
     });
     console.log(`   ✅ Backend health check: ${healthResponse.status}`);
@@ -90,7 +94,7 @@ async function testBackendConnectivity() {
     // Test authentication with service account login
     console.log("   Testing service account login...");
     const authResponse = await axios.post(
-      `${config.backendUrl}/auth/login`,
+      `${backendUrl}/auth/login`,
       {
         email: config.serviceEmail,
         password: config.servicePassword,
@@ -105,8 +109,8 @@ async function testBackendConnectivity() {
     console.log(`   ✅ Service account login: ${authResponse.status}`);
 
     // Test frontend connectivity
-    console.log(`   Testing ${config.frontendUrl}...`);
-    const frontendResponse = await axios.get(config.frontendUrl, {
+    console.log(`   Testing ${frontendUrl}...`);
+    const frontendResponse = await axios.get(frontendUrl, {
       timeout: 10000,
     });
     console.log(`   ✅ Frontend connectivity: ${frontendResponse.status}`);

@@ -14,7 +14,7 @@ This guide shows how to deploy just the ZIP file to an existing Lambda function.
 2. Click "Create function"
 3. Choose "Author from scratch"
 4. **Function name**: `59club-async-export-lambda`
-5. **Runtime**: Node.js 18.x
+5. **Runtime**: Node.js 22.x
 6. **Architecture**: x86_64
 7. Click "Create function"
 
@@ -22,7 +22,7 @@ This guide shows how to deploy just the ZIP file to an existing Lambda function.
 ```bash
 aws lambda create-function \
   --function-name 59club-async-export-lambda \
-  --runtime nodejs18.x \
+  --runtime nodejs22.x \
   --role arn:aws:iam::YOUR-ACCOUNT:role/lambda-execution-role \
   --handler src/index.handler \
   --zip-file fileb://function.zip \
@@ -86,8 +86,8 @@ cat > test-event.json << 'EOF'
   "surveyId": "your-survey-id",
   "participantId": "your-participant-id",
   "adminEmails": ["admin@yourcompany.com"],
-  "frontendUrl": "https://app.59club.com",
-  "backendUrl": "https://api.59club.com",
+  "frontendUrl": "https://app.test.com",
+  "backendUrl": "https://api.test.com",
   "serviceEmail": "your-service@email.com",
   "servicePassword": "your-password"
 }
