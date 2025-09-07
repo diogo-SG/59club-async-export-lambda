@@ -28,9 +28,9 @@ const MOCK_EVENT = {
 
 const MOCK_CONTEXT = {
   awsRequestId: "test-aws-request-id",
-  functionName: "pdf-export-lambda-test",
+  functionName: "59club-async-export-lambda-test",
   functionVersion: "$LATEST",
-  invokedFunctionArn: "arn:aws:lambda:us-east-1:123456789:function:pdf-export-lambda-test",
+  invokedFunctionArn: "arn:aws:lambda:us-east-1:123456789:function:59club-async-export-lambda-test",
   memoryLimitInMB: "2048",
   remainingTimeInMS: () => 180000,
 };

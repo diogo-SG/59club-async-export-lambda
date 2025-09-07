@@ -72,9 +72,9 @@ npm run package
 # Deploy CloudFormation stack
 aws cloudformation deploy \
   --template-file deployment/cloudformation.yaml \
-  --stack-name 59club-pdf-export-stack \
+  --stack-name 59club-async-export-stack \
   --parameter-overrides \
-    FunctionName=59club-pdf-export-lambda \
+    FunctionName=59club-async-export-lambda \
     Environment=production \
   --capabilities CAPABILITY_NAMED_IAM \
   --region us-east-1
@@ -84,7 +84,7 @@ aws cloudformation deploy \
 ```bash
 # Update Lambda function code
 aws lambda update-function-code \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --zip-file fileb://function.zip \
   --region us-east-1
 ```
@@ -110,7 +110,7 @@ The Lambda function supports the following environment variables:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `FunctionName` | `59club-pdf-export-lambda` | Lambda function name |
+| `FunctionName` | `59club-async-export-lambda` | Lambda function name |
 | `Environment` | `production` | Deployment environment |
 | `LogLevel` | `info` | CloudWatch logging level |
 | `MaxRetries` | `3` | Retry configuration |
@@ -144,7 +144,7 @@ curl -X POST https://your-api-url/export \
 ### 3. Monitor Logs
 ```bash
 # View CloudWatch logs
-aws logs tail /aws/lambda/59club-pdf-export-lambda --follow
+aws logs tail /aws/lambda/59club-async-export-lambda --follow
 ```
 
 ## Frontend Integration
@@ -197,12 +197,12 @@ The deployment includes CloudWatch alarms for:
 ```bash
 # Search for specific errors
 aws logs filter-log-events \
-  --log-group-name /aws/lambda/59club-pdf-export-lambda \
+  --log-group-name /aws/lambda/59club-async-export-lambda \
   --filter-pattern "ERROR"
 
 # Monitor performance
 aws logs filter-log-events \
-  --log-group-name /aws/lambda/59club-pdf-export-lambda \
+  --log-group-name /aws/lambda/59club-async-export-lambda \
   --filter-pattern "duration"
 ```
 
@@ -248,7 +248,7 @@ Error: Email service temporarily unavailable
 ```bash
 # Configure allowed domains
 aws lambda update-function-configuration \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --environment "Variables={ALLOWED_DOMAINS=yourcompany.com,app.yourcompany.com}"
 ```
 
@@ -272,11 +272,11 @@ aws lambda update-function-configuration \
 ```bash
 # List function versions
 aws lambda list-versions-by-function \
-  --function-name 59club-pdf-export-lambda
+  --function-name 59club-async-export-lambda
 
 # Rollback to previous version
 aws lambda update-alias \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --name LIVE \
   --function-version 1
 ```
@@ -285,7 +285,7 @@ aws lambda update-alias \
 ```bash
 # Rollback CloudFormation stack
 aws cloudformation cancel-update-stack \
-  --stack-name 59club-pdf-export-stack
+  --stack-name 59club-async-export-stack
 ```
 
 ## Cost Optimization
@@ -308,7 +308,7 @@ aws cloudformation cancel-update-stack \
 ```bash
 # Enable debug logging
 aws lambda update-function-configuration \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --environment "Variables={LOG_LEVEL=debug}"
 ```
 
@@ -316,7 +316,7 @@ aws lambda update-function-configuration \
 ```bash
 # Monitor function health
 aws lambda get-function \
-  --function-name 59club-pdf-export-lambda
+  --function-name 59club-async-export-lambda
 
 # Check API Gateway health
 curl -X OPTIONS https://your-api-url/export

@@ -6,8 +6,8 @@
 set -e
 
 # Configuration
-FUNCTION_NAME="59club-pdf-export-lambda"
-STACK_NAME="59club-pdf-export-stack"
+FUNCTION_NAME="59club-async-export-lambda"
+STACK_NAME="59club-async-export-stack"
 DEFAULT_REGION="us-east-1"
 DEFAULT_ENVIRONMENT="production"
 

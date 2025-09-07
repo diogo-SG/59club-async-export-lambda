@@ -3,12 +3,12 @@
 # Quick deploy script - no CloudFormation needed
 # Usage: ./quick-deploy.sh [function-name] [region] [env-type]
 # Examples:
-#   ./quick-deploy.sh pdf-export-dev us-east-1 dev
-#   ./quick-deploy.sh pdf-export-prod us-east-1 prod
+#   ./quick-deploy.sh 59club-async-export-dev us-east-1 dev
+#   ./quick-deploy.sh 59club-async-export-prod us-east-1 prod
 
 set -e
 
-FUNCTION_NAME=${1:-59club-pdf-export-lambda}
+FUNCTION_NAME=${1:-59club-async-export-lambda}
 REGION=${2:-us-east-1}
 ENV_TYPE=${3:-prod}
 

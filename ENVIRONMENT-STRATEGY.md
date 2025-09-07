@@ -30,9 +30,9 @@ await invoke({
 
 ```bash
 # Deploy separate functions
-./quick-deploy.sh pdf-export-dev us-east-1
-./quick-deploy.sh pdf-export-staging us-east-1
-./quick-deploy.sh pdf-export-prod us-east-1
+./quick-deploy.sh 59club-async-export-dev us-east-1
+./quick-deploy.sh 59club-async-export-staging us-east-1
+./quick-deploy.sh 59club-async-export-prod us-east-1
 ```
 
 Each with different environment variables:
@@ -96,7 +96,7 @@ await invoke({
 ```bash
 # Deploy one Lambda with prod URLs as defaults
 aws lambda update-function-configuration \
-  --function-name pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --environment Variables='{
     "FRONTEND_URL": "https://app.59club.com",
     "BACKEND_URL": "https://api.59club.com"
@@ -107,7 +107,7 @@ aws lambda update-function-configuration \
 ```bash
 # DEV Lambda
 aws lambda update-function-configuration \
-  --function-name pdf-export-dev \
+  --function-name 59club-async-export-dev \
   --environment Variables='{
     "FRONTEND_URL": "https://app-dev.59club.com", 
     "BACKEND_URL": "https://api-dev.59club.com"
@@ -115,7 +115,7 @@ aws lambda update-function-configuration \
 
 # PROD Lambda
 aws lambda update-function-configuration \
-  --function-name pdf-export-prod \
+  --function-name 59club-async-export-prod \
   --environment Variables='{
     "FRONTEND_URL": "https://app.59club.com",
     "BACKEND_URL": "https://api.59club.com"
@@ -141,7 +141,7 @@ Based on typical enterprise patterns, I recommend **Strategy 3 with separate Lam
 // DEV Frontend → DEV Lambda (has dev URLs in env vars)
 // PROD Frontend → PROD Lambda (has prod URLs in env vars)
 
-await invoke('pdf-export-prod', {  // Function name indicates environment
+await invoke('59club-async-export-prod', {  // Function name indicates environment
   surveyId: "123",
   participantId: "456", 
   adminEmails: ["admin@company.com"],
@@ -155,10 +155,10 @@ await invoke('pdf-export-prod', {  // Function name indicates environment
 
 ```bash
 # Deploy to dev
-FUNCTION_NAME=pdf-export-dev ./quick-deploy.sh
+FUNCTION_NAME=59club-async-export-dev ./quick-deploy.sh
 
 # Deploy to prod  
-FUNCTION_NAME=pdf-export-prod ./quick-deploy.sh
+FUNCTION_NAME=59club-async-export-prod ./quick-deploy.sh
 ```
 
 This gives you the security and isolation of separate functions while maintaining flexibility through the hybrid URL approach.

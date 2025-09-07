@@ -13,7 +13,7 @@ This guide shows how to deploy just the ZIP file to an existing Lambda function.
 1. Go to AWS Lambda Console
 2. Click "Create function"
 3. Choose "Author from scratch"
-4. **Function name**: `59club-pdf-export-lambda`
+4. **Function name**: `59club-async-export-lambda`
 5. **Runtime**: Node.js 18.x
 6. **Architecture**: x86_64
 7. Click "Create function"
@@ -21,7 +21,7 @@ This guide shows how to deploy just the ZIP file to an existing Lambda function.
 ### Option B: AWS CLI
 ```bash
 aws lambda create-function \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --runtime nodejs18.x \
   --role arn:aws:iam::YOUR-ACCOUNT:role/lambda-execution-role \
   --handler src/index.handler \
@@ -36,7 +36,7 @@ aws lambda create-function \
 ### Memory and Timeout
 ```bash
 aws lambda update-function-configuration \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --memory-size 2048 \
   --timeout 180 \
   --ephemeral-storage Size=1024
@@ -45,7 +45,7 @@ aws lambda update-function-configuration \
 ### Environment Variables
 ```bash
 aws lambda update-function-configuration \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --environment Variables='{
     "NODE_ENV": "production",
     "LOG_LEVEL": "info",
@@ -72,7 +72,7 @@ npm run package
 ```bash
 # Upload to existing Lambda function
 aws lambda update-function-code \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --zip-file fileb://function.zip
 ```
 
@@ -95,7 +95,7 @@ EOF
 
 # Test the function
 aws lambda invoke \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --payload file://test-event.json \
   response.json
 
@@ -111,7 +111,7 @@ If you want HTTP endpoint access:
 ```bash
 # Create REST API
 aws apigateway create-rest-api \
-  --name pdf-export-api \
+  --name 59club-async-export-api \
   --description "PDF Export API"
 
 # Get API ID and Root Resource ID from output
@@ -136,12 +136,12 @@ npm run package
 
 # 3. Upload new code
 aws lambda update-function-code \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --zip-file fileb://function.zip
 
 # 4. Test
 aws lambda invoke \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --payload file://test-event.json \
   response.json
 ```
@@ -153,7 +153,7 @@ aws lambda invoke \
 echo "🔄 Deploying to Lambda..."
 npm run package
 aws lambda update-function-code \
-  --function-name 59club-pdf-export-lambda \
+  --function-name 59club-async-export-lambda \
   --zip-file fileb://function.zip
 echo "✅ Deployment complete!"
 ```

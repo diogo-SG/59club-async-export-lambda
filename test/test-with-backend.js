@@ -65,9 +65,9 @@ function createTestEvent() {
 function createMockContext() {
   return {
     awsRequestId: "local-test-aws-request",
-    functionName: "pdf-export-lambda-local",
+    functionName: "59club-async-export-lambda-local",
     functionVersion: "$LATEST",
-    invokedFunctionArn: "arn:aws:lambda:local:123456789:function:pdf-export-lambda-local",
+    invokedFunctionArn: "arn:aws:lambda:local:123456789:function:59club-async-export-lambda-local",
     memoryLimitInMB: "2048",
     remainingTimeInMS: () => 180000,
   };
@@ -205,16 +205,20 @@ async function testComponent(component) {
       try {
         // First get access token via login
         const axios = require("axios");
-        const authResponse = await axios.post(`${config.backendUrl}/auth/login`, {
-          email: config.serviceEmail,
-          password: config.servicePassword,
-        }, {
-          headers: { "Content-Type": "application/json" },
-          timeout: 10000,
-        });
-        
+        const authResponse = await axios.post(
+          `${config.backendUrl}/auth/login`,
+          {
+            email: config.serviceEmail,
+            password: config.servicePassword,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+            timeout: 10000,
+          }
+        );
+
         const accessToken = authResponse.data.accessToken || authResponse.data.token || authResponse.data.access_token;
-        
+
         const { UploadService } = require("../src/services/upload-service");
         const service = new UploadService(config.backendUrl, accessToken, "test-upload");
 
@@ -230,16 +234,20 @@ async function testComponent(component) {
       try {
         // First get access token via login
         const axios = require("axios");
-        const authResponse = await axios.post(`${config.backendUrl}/auth/login`, {
-          email: config.serviceEmail,
-          password: config.servicePassword,
-        }, {
-          headers: { "Content-Type": "application/json" },
-          timeout: 10000,
-        });
-        
+        const authResponse = await axios.post(
+          `${config.backendUrl}/auth/login`,
+          {
+            email: config.serviceEmail,
+            password: config.servicePassword,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+            timeout: 10000,
+          }
+        );
+
         const accessToken = authResponse.data.accessToken || authResponse.data.token || authResponse.data.access_token;
-        
+
         const { EmailService } = require("../src/services/email-service");
         const service = new EmailService(config.backendUrl, accessToken, "test-email");
 
