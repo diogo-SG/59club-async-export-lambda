@@ -11,7 +11,15 @@ const validateInput = (input) => {
   const errors = [];
 
   // Check required fields
-  const requiredFields = ["surveyId", "participantId", "adminEmails", "frontendUrl", "backendUrl", "serviceEmail", "servicePassword"];
+  const requiredFields = [
+    "surveyId",
+    "participantId",
+    "adminEmails",
+    "frontendUrl",
+    "backendUrl",
+    "serviceEmail",
+    "servicePassword",
+  ];
 
   for (const field of requiredFields) {
     if (!input[field]) {

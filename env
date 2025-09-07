@@ -1,0 +1,57 @@
+# Example environment configuration
+# Copy this file to .env and update with your actual values
+
+# =============================================================================
+# AWS Configuration (for deployment)
+# =============================================================================
+AWS_REGION=us-east-1
+AWS_PROFILE=default
+
+# =============================================================================
+# Application URLs (update with your actual URLs)
+# =============================================================================
+FRONTEND_URL=localhost:3000
+BACKEND_URL=http://localhost:3001
+
+# =============================================================================
+# Service Account Authentication (for testing and production)
+# =============================================================================
+# Service account credentials for authentication
+SERVICE_EMAIL=service-account@yourcompany.com
+SERVICE_PASSWORD=your_service_account_password
+
+# =============================================================================
+# Testing Configuration
+# =============================================================================
+TEST_SURVEY_ID=test-survey-123
+TEST_PARTICIPANT_ID=test-participant-456
+TEST_ADMIN_EMAILS=admin@yourcompany.com,manager@yourcompany.com
+
+# =============================================================================
+# Lambda Configuration (optional overrides)
+# =============================================================================
+LOG_LEVEL=info
+TIMEOUT_MS=150000
+MAX_RETRIES=3
+UPLOAD_TIMEOUT_MS=60000
+EMAIL_TIMEOUT_MS=30000
+MAX_FILE_SIZE_MB=50
+
+# =============================================================================
+# Local Development Flags
+# =============================================================================
+NODE_ENV=development
+IS_LOCAL=true
+MOCK_SERVICES=false
+
+# =============================================================================
+# Chrome Configuration (advanced)
+# =============================================================================
+# Additional Chrome arguments (comma-separated)
+# CHROME_ARGS=--disable-gpu,--no-first-run
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+# Comma-separated list of allowed domains
+ALLOWED_DOMAINS=59club.com,app.59club.com,api.59club.com

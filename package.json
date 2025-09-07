@@ -10,7 +10,8 @@
     "test:check": "node test/test-with-backend.js check",
     "build": "npm install --production",
     "package": "zip -r function.zip src/ node_modules/",
-    "deploy": "aws lambda update-function-code --function-name pdf-export-lambda --zip-file fileb://function.zip"
+    "deploy": "aws lambda update-function-code --function-name pdf-export-lambda --zip-file fileb://function.zip",
+    "deploy:quick": "./quick-deploy.sh"
   },
   "dependencies": {
     "puppeteer-core": "^21.5.0",
