@@ -54,6 +54,29 @@ async function downloadChromium() {
     try {
       execSync(`cd "${binDir}" && unzip -q chromium.zip`, { stdio: "inherit" });
       console.log(`✅ Extracted successfully`);
+
+      // Remove unnecessary files to reduce size
+      const unnecessaryPaths = [
+        path.join(binDir, "chrome-linux", "locales"),
+        path.join(binDir, "chrome-linux", "MEIPreload"),
+        path.join(binDir, "chrome-linux", "ClearKeyCdm"),
+        path.join(binDir, "chrome-linux", "swiftshader"),
+        path.join(binDir, "chrome-linux", "xdg-settings"),
+        path.join(binDir, "chrome-linux", "xdg-mime"),
+        path.join(binDir, "chrome-linux", "product_logo_48.png"),
+      ];
+
+      unnecessaryPaths.forEach((pathToRemove) => {
+        if (fs.existsSync(pathToRemove)) {
+          if (fs.statSync(pathToRemove).isDirectory()) {
+            fs.rmSync(pathToRemove, { recursive: true });
+            console.log(`🗑️  Removed directory: ${path.basename(pathToRemove)}`);
+          } else {
+            fs.unlinkSync(pathToRemove);
+            console.log(`🗑️  Removed file: ${path.basename(pathToRemove)}`);
+          }
+        }
+      });
     } catch (error) {
       console.error(`❌ Extraction failed: ${error.message}`);
       process.exit(1);
