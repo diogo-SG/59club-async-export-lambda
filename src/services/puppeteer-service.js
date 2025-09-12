@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 const path = require("path");
 const fs = require("fs");
 const { logger } = require("../utils/logger");
@@ -95,10 +96,7 @@ class PuppeteerService {
     const startTime = Date.now();
 
     try {
-      // Use Lambda layer for Chromium executable
-      const executablePath = "/opt/chrome/chrome";
-
-      // Debug Lambda environment
+      // Debug Lambda environment first
       logger.info("Lambda environment debug", {
         requestId: this.requestId,
         nodeVersion: process.version,
@@ -109,6 +107,48 @@ class PuppeteerService {
         tmpDir: process.env.TMPDIR || "/tmp",
         lambdaTaskRoot: process.env.LAMBDA_TASK_ROOT,
       });
+
+      // Try to get Chromium executable path
+      let executablePath;
+      let chromiumArgs = [];
+      let defaultViewport = { width: 1280, height: 720 };
+
+      try {
+        // First try @sparticuz/chromium
+        executablePath = await chromium.executablePath();
+        chromiumArgs = chromium.args;
+        defaultViewport = chromium.defaultViewport;
+
+        logger.info("Using @sparticuz/chromium", {
+          requestId: this.requestId,
+          executablePath,
+          chromiumVersion: "118.0.0",
+        });
+      } catch (chromiumError) {
+        logger.error("@sparticuz/chromium failed", {
+          requestId: this.requestId,
+          error: chromiumError.message,
+        });
+
+        // Fallback to common Lambda layer paths
+        const fallbackPaths = [
+          "/opt/chrome/chrome",
+          "/opt/chromium/chromium",
+          "/opt/chrome-linux/chrome",
+          "/opt/google/chrome/chrome",
+        ];
+
+        executablePath = fallbackPaths.find((path) => fs.existsSync(path));
+
+        if (!executablePath) {
+          throw new Error(`No Chromium executable found. Tried: ${fallbackPaths.join(", ")}`);
+        }
+
+        logger.info("Using fallback executable", {
+          requestId: this.requestId,
+          executablePath,
+        });
+      }
 
       // Check if chromium binary exists and is accessible
       const chromiumExists = fs.existsSync(executablePath);
@@ -131,10 +171,16 @@ class PuppeteerService {
         chromiumExists,
         isExecutable: chromiumStats?.mode && (chromiumStats.mode & parseInt("111", 8)) !== 0,
         chromiumSize: chromiumStats?.size,
+        hasChromiumArgs: chromiumArgs.length > 0,
       });
+
+      if (!chromiumExists) {
+        throw new Error(`Chromium executable not found at: ${executablePath}`);
+      }
 
       const browser = await puppeteer.launch({
         args: [
+          ...chromiumArgs,
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
@@ -169,12 +215,11 @@ class PuppeteerService {
           "--disable-print-preview",
           "--disable-speech-api",
           "--disable-file-system",
-          "--disable-features=AudioServiceOutOfProcess,VizDisplayCompositor",
           ...(process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(",") : []),
         ],
-        defaultViewport: { width: 1280, height: 720 },
+        defaultViewport,
         executablePath,
-        headless: true,
+        headless: chromium.headless !== undefined ? chromium.headless : true,
         ignoreHTTPSErrors: true,
         timeout: this.timeout,
       });
