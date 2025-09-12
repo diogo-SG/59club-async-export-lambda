@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
 const path = require("path");
 const fs = require("fs");
 const { logger } = require("../utils/logger");
@@ -96,19 +95,46 @@ class PuppeteerService {
     const startTime = Date.now();
 
     try {
-      // Ensure chromium is properly configured for Lambda
-      const executablePath = await chromium.executablePath();
+      // Use Lambda layer for Chromium executable
+      const executablePath = "/opt/chrome/chrome";
+
+      // Debug Lambda environment
+      logger.info("Lambda environment debug", {
+        requestId: this.requestId,
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        isLambda: !!process.env.AWS_LAMBDA_FUNCTION_NAME,
+        functionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
+        tmpDir: process.env.TMPDIR || "/tmp",
+        lambdaTaskRoot: process.env.LAMBDA_TASK_ROOT,
+      });
+
+      // Check if chromium binary exists and is accessible
+      const chromiumExists = fs.existsSync(executablePath);
+      let chromiumStats = null;
+
+      if (chromiumExists) {
+        try {
+          chromiumStats = fs.statSync(executablePath);
+        } catch (err) {
+          logger.error("Error getting chromium stats", {
+            requestId: this.requestId,
+            error: err.message,
+          });
+        }
+      }
 
       logger.info("Chromium configuration", {
         requestId: this.requestId,
         executablePath,
-        isLambda: !!process.env.AWS_LAMBDA_FUNCTION_NAME,
-        tmpDir: process.env.TMPDIR || "/tmp",
+        chromiumExists,
+        isExecutable: chromiumStats?.mode && (chromiumStats.mode & parseInt("111", 8)) !== 0,
+        chromiumSize: chromiumStats?.size,
       });
 
       const browser = await puppeteer.launch({
         args: [
-          ...chromium.args,
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
@@ -140,15 +166,15 @@ class PuppeteerService {
           "--disable-breakpad",
           "--disable-component-update",
           "--disable-domain-reliability",
-          "--disable-features=AudioServiceOutOfProcess,VizDisplayCompositor",
           "--disable-print-preview",
           "--disable-speech-api",
           "--disable-file-system",
+          "--disable-features=AudioServiceOutOfProcess,VizDisplayCompositor",
           ...(process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(",") : []),
         ],
-        defaultViewport: chromium.defaultViewport,
+        defaultViewport: { width: 1280, height: 720 },
         executablePath,
-        headless: chromium.headless,
+        headless: true,
         ignoreHTTPSErrors: true,
         timeout: this.timeout,
       });
@@ -165,9 +191,22 @@ class PuppeteerService {
       logger.error("Failed to launch browser", {
         requestId: this.requestId,
         error: error.message,
+        errorStack: error.stack,
+        errorCode: error.code,
         launchTime,
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
       });
-      throw new Error(`Browser launch failed: ${error.message}`);
+
+      // Try to provide more helpful error messages
+      let errorMessage = error.message;
+      if (error.message.includes("libnspr4.so")) {
+        errorMessage +=
+          "\n\nThis appears to be a shared library compatibility issue. Try:\n1. Using different @sparticuz/chromium version\n2. Checking Lambda runtime compatibility\n3. Verifying x86_64 architecture";
+      }
+
+      throw new Error(`Browser launch failed: ${errorMessage}`);
     }
   }
 
