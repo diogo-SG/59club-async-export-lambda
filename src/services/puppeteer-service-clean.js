@@ -241,7 +241,7 @@ class PuppeteerService {
       const authResult = await page.evaluate(
         async (backendUrl, serviceEmail, servicePassword) => {
           try {
-            const response = await fetch(`${backendUrl}/auth/login`, {
+            const response = await fetch(`${backendUrl}/users/login`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -264,8 +264,8 @@ class PuppeteerService {
             return {
               success: true,
               status: response.status,
-              accessToken: data.accessToken || data.token || data.access_token,
-              user: data.user,
+              accessToken: data.data?.token || data.accessToken || data.token || data.access_token,
+              user: data.data?.user || data.user,
             };
           } catch (error) {
             return {
@@ -321,7 +321,6 @@ class PuppeteerService {
 
     // Enable necessary domains
     await client.send("Page.enable");
-    await client.send("Browser.enable");
 
     // Set download behavior
     await client.send("Page.setDownloadBehavior", {

@@ -90,8 +90,8 @@ exports.handler = async (event, context) => {
       });
 
       // Step 2: Initialize services with the access token obtained from authentication
-      const uploadService = new UploadService(backendUrl, accessToken, requestId);
-      const emailService = new EmailService(backendUrl, accessToken, requestId);
+      const uploadService = new UploadService(backendUrl, accessToken, requestId, env);
+      const emailService = new EmailService(backendUrl, accessToken, requestId, surveyId, participantId);
 
       // Step 3: Upload PDF to backend storage
       logger.info("Starting PDF upload", { requestId });
@@ -107,8 +107,6 @@ exports.handler = async (event, context) => {
       await emailService.sendNotifications({
         adminEmails,
         pdfUrl,
-        surveyId,
-        participantId,
       });
 
       logger.info("Email notifications sent successfully", {

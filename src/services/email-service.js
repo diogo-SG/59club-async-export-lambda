@@ -5,11 +5,13 @@ const { logger } = require("../utils/logger");
  * Service for sending email notifications via backend API
  */
 class EmailService {
-  constructor(backendUrl, accessToken, requestId) {
+  constructor(backendUrl, accessToken, requestId, surveyId, participantId) {
     this.backendUrl = backendUrl;
     this.accessToken = accessToken;
     this.requestId = requestId;
-    this.emailEndpoint = `${backendUrl}/notifications/email`;
+    this.surveyId = surveyId;
+    this.participantId = participantId;
+    this.emailEndpoint = `${backendUrl}/responses/${surveyId}/participants/${participantId}/send-report-with-pdf`;
     this.timeout = 30000; // 30 seconds for email sending
   }
 
@@ -19,30 +21,28 @@ class EmailService {
    * @returns {Object} - Email sending result
    */
   async sendNotifications(params) {
-    const { adminEmails, pdfUrl, surveyId, participantId } = params;
+    const { adminEmails, pdfUrl } = params;
 
     logger.info("Starting email notifications", {
       requestId: this.requestId,
       recipientCount: adminEmails.length,
-      surveyId,
-      participantId,
+      surveyId: this.surveyId,
+      participantId: this.participantId,
       pdfUrl,
     });
 
     try {
-      // Prepare email data
+      // Prepare email data according to API specification
       const emailData = {
-        recipients: adminEmails,
-        subject: `Survey Export Ready - Survey ${surveyId}`,
-        template: "survey_export_notification",
-        data: {
-          surveyId,
-          participantId,
-          pdfUrl,
-          exportDate: new Date().toISOString(),
-          downloadLink: pdfUrl,
-        },
+        recipientEmails: adminEmails,
+        s3PdfUrl: pdfUrl,
       };
+
+      logger.info("Sending email request", {
+        requestId: this.requestId,
+        endpoint: this.emailEndpoint,
+        emailData: JSON.stringify(emailData, null, 2),
+      });
 
       // Send email via backend API
       const response = await axios.post(this.emailEndpoint, emailData, {
@@ -51,6 +51,15 @@ class EmailService {
           "Content-Type": "application/json",
         },
         timeout: this.timeout,
+      });
+
+      // Log the email response for debugging
+      logger.info("Email response received", {
+        requestId: this.requestId,
+        status: response.status,
+        headers: response.headers,
+        dataKeys: response.data ? Object.keys(response.data) : "no data",
+        fullResponse: JSON.stringify(response.data, null, 2),
       });
 
       // Validate response
@@ -62,15 +71,16 @@ class EmailService {
 
       logger.info("Email notifications sent successfully", {
         requestId: this.requestId,
-        emailsSent: result.sent || adminEmails.length,
-        messageId: result.messageId,
+        emailsSent: result.sent || result.emailsSent || adminEmails.length,
+        messageId: result.messageId || result.id,
         responseStatus: response.status,
+        recipients: adminEmails,
       });
 
       return {
         success: true,
-        emailsSent: result.sent || adminEmails.length,
-        messageId: result.messageId,
+        emailsSent: result.sent || result.emailsSent || adminEmails.length,
+        messageId: result.messageId || result.id,
         recipients: adminEmails,
       };
     } catch (error) {

@@ -18,19 +18,10 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Set environment-specific URLs
+# Validate environment type
 case $ENV_TYPE in
-    dev)
-        FRONTEND_URL="https://app-dev.test.com"
-        BACKEND_URL="https://api-dev.test.com"
-        ;;
-    staging)
-        FRONTEND_URL="https://app-staging.test.com" 
-        BACKEND_URL="https://api-staging.test.com"
-        ;;
-    prod)
-        FRONTEND_URL="https://app.test.com"
-        BACKEND_URL="https://api.test.com"
+    dev|staging|prod)
+        # Valid environment types
         ;;
     *)
         echo -e "${RED}❌ Invalid environment type: $ENV_TYPE${NC}"
@@ -43,8 +34,7 @@ echo -e "${BLUE}🚀 Quick Deploy to Lambda${NC}"
 echo "Function: $FUNCTION_NAME"
 echo "Region: $REGION"
 echo "Environment: $ENV_TYPE"
-echo "Frontend URL: $FRONTEND_URL"
-echo "Backend URL: $BACKEND_URL"
+echo "(URLs will be determined dynamically based on env)"
 echo ""
 
 # Check if function exists
@@ -76,6 +66,7 @@ if [ "$FUNCTION_EXISTS" = true ]; then
         --memory-size 2048 \
         --timeout 180 \
         --ephemeral-storage Size=1024 \
+        --architectures x86_64 \
         --environment Variables="{
             \"NODE_ENV\": \"production\",
             \"LOG_LEVEL\": \"info\", 
@@ -83,9 +74,7 @@ if [ "$FUNCTION_EXISTS" = true ]; then
             \"MAX_RETRIES\": \"3\",
             \"UPLOAD_TIMEOUT_MS\": \"60000\",
             \"EMAIL_TIMEOUT_MS\": \"30000\",
-            \"MAX_FILE_SIZE_MB\": \"50\",
-            \"FRONTEND_URL\": \"$FRONTEND_URL\",
-            \"BACKEND_URL\": \"$BACKEND_URL\"
+            \"MAX_FILE_SIZE_MB\": \"50\"
         }" \
         --region "$REGION"
 else
@@ -94,7 +83,8 @@ else
     echo "1. Go to AWS Lambda Console"
     echo "2. Create function: $FUNCTION_NAME"
     echo "3. Runtime: Node.js 22.x"
-    echo "4. Then run this script again"
+    echo "4. Architecture: x86_64"
+    echo "5. Then run this script again"
     exit 1
 fi
 
@@ -105,6 +95,7 @@ cat > /tmp/test-event.json << EOF
     "surveyId": "test-123",
     "participantId": "test-456", 
     "adminEmails": ["test@example.com"],
+    "env": "$ENV_TYPE",
     "serviceEmail": "test@example.com",
     "servicePassword": "test-password"
 }

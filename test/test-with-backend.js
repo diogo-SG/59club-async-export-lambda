@@ -253,7 +253,13 @@ async function testComponent(component) {
         const accessToken = authResponse.data.accessToken || authResponse.data.token || authResponse.data.access_token;
 
         const { EmailService } = require("../src/services/email-service");
-        const service = new EmailService(config.backendUrl, accessToken, "test-email");
+        const service = new EmailService(
+          config.backendUrl,
+          accessToken,
+          "test-email",
+          "test-survey-id",
+          "test-participant-id"
+        );
 
         const isAccessible = await service.verifyEmailService();
         console.log(`   Email endpoint accessible: ${isAccessible ? "✅" : "❌"}`);

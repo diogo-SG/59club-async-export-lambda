@@ -110,11 +110,11 @@ const getEnvironmentUrls = (env) => {
     },
     staging: {
       frontendUrl: "https://staging.surveys.59club.com",
-      backendUrl: "https://staging.api.surveys.59club.com",
+      backendUrl: "https://staging.api.surveys.59club.com/api",
     },
     prod: {
       frontendUrl: "https://staging.surveys.59club.com", // TBC, using staging for now
-      backendUrl: "https://staging.api.surveys.59club.com", // TBC, using staging for now
+      backendUrl: "https://staging.api.surveys.59club.com/api", // TBC, using staging for now
     },
   };
 

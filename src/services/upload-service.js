@@ -7,10 +7,11 @@ const { sanitizeString } = require("../utils/validation");
  * Service for uploading PDFs to backend storage API
  */
 class UploadService {
-  constructor(backendUrl, accessToken, requestId) {
+  constructor(backendUrl, accessToken, requestId, environment) {
     this.backendUrl = backendUrl;
     this.accessToken = accessToken;
     this.requestId = requestId;
+    this.environment = environment;
     this.uploadEndpoint = `${backendUrl}/media`;
     this.timeout = 60000; // 60 seconds for upload
   }
@@ -64,16 +65,41 @@ class UploadService {
         maxBodyLength: 50 * 1024 * 1024,
       });
 
+      // Log the actual response structure for debugging
+      logger.info("Upload response received", {
+        requestId: this.requestId,
+        status: response.status,
+        headers: response.headers,
+        dataKeys: response.data ? Object.keys(response.data) : "no data",
+        fullResponse: JSON.stringify(response.data, null, 2),
+      });
+
       // Validate response
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(`Upload failed with status: ${response.status}`);
       }
 
-      if (!response.data || !response.data.url) {
-        throw new Error("Upload response missing file URL");
+      if (!response.data) {
+        throw new Error("Upload response missing data object");
       }
 
-      const fileUrl = response.data.url;
+      // Try multiple possible field names
+      const fileLocation =
+        response.data.fileLocation ||
+        response.data.data?.fileLocation ||
+        response.data.file?.location ||
+        response.data.url;
+
+      if (!fileLocation) {
+        logger.error("No file location found in response", {
+          requestId: this.requestId,
+          availableFields: Object.keys(response.data),
+          responseData: JSON.stringify(response.data, null, 2),
+        });
+        throw new Error("Upload response missing file location or URL");
+      }
+
+      const fileUrl = this.buildCloudFrontUrl(fileLocation);
 
       logger.info("PDF upload completed successfully", {
         requestId: this.requestId,
@@ -108,6 +134,44 @@ class UploadService {
         throw new Error(`Upload failed: ${error.message}`);
       }
     }
+  }
+
+  /**
+   * Build CloudFront URL from file location based on environment
+   * @param {string} fileLocation - File location from upload response
+   * @returns {string} - Full CloudFront URL
+   */
+  buildCloudFrontUrl(fileLocation) {
+    // If fileLocation is already a full URL, return it as-is
+    if (fileLocation.startsWith("http://") || fileLocation.startsWith("https://")) {
+      logger.info("Using provided full URL", {
+        requestId: this.requestId,
+        fullUrl: fileLocation,
+      });
+      return fileLocation;
+    }
+
+    // Environment to CloudFront domain mapping
+    const cloudFrontDomains = {
+      local: "dev.assets.59club.studiographene.xyz",
+      dev: "dev.assets.59club.studiographene.xyz",
+      qa: "qa.assets.59club.studiographene.xyz",
+      staging: "club59-uat-assets-origin.s3.eu-west-1.amazonaws.com",
+      prod: "club59-uat-assets-origin.s3.eu-west-1.amazonaws.com", // Use staging for now
+    };
+
+    const domain = cloudFrontDomains[this.environment] || cloudFrontDomains.staging;
+    const fullUrl = `https://${domain}/${fileLocation}`;
+
+    logger.info("Built CloudFront URL", {
+      requestId: this.requestId,
+      environment: this.environment,
+      domain,
+      fileLocation,
+      fullUrl,
+    });
+
+    return fullUrl;
   }
 
   /**
