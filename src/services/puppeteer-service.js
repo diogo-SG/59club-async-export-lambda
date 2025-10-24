@@ -196,6 +196,8 @@ class PuppeteerService {
    * @returns {string} - Access token obtained from login
    */
   async authenticateViaPuppeteer(page, backendUrl, serviceEmail, servicePassword, frontendUrl) {
+    const startTime = Date.now();
+
     logger.info("Starting browser-context authentication", {
       requestId: this.requestId,
       frontendUrl,
@@ -220,52 +222,241 @@ class PuppeteerService {
         timeout: this.timeout,
       });
 
-      // Wait for login form to be available
+      logger.info("Login page loaded", {
+        requestId: this.requestId,
+        currentUrl: page.url(),
+      });
+
+      // Wait for login form to be available and fill credentials
       await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 10000 });
 
       // Fill in the login form
       await page.type('input[type="email"], input[name="email"]', serviceEmail);
       await page.type('input[type="password"], input[name="password"]', servicePassword);
 
-      // Find the submit button
-      let submitButton = await page.$('button[type="submit"], input[type="submit"]');
+      // Look specifically for the Login button first (since there are multiple submit buttons)
+      let submitButton = await page.evaluateHandle(() => {
+        const buttons = Array.from(document.querySelectorAll("button"));
+        return buttons.find((btn) => btn.textContent?.toLowerCase().trim() === "login");
+      });
 
-      // If no submit button found, look for button with Login text
-      if (!submitButton) {
-        const loginButtons = await page.$$eval("button", (buttons) =>
-          buttons.filter(
+      // If Login button not found, try other login-related text
+      if (!submitButton || !submitButton.asElement()) {
+        submitButton = await page.evaluateHandle(() => {
+          const buttons = Array.from(document.querySelectorAll("button"));
+          return buttons.find(
             (btn) =>
               btn.textContent?.toLowerCase().includes("login") || btn.textContent?.toLowerCase().includes("sign in")
-          )
-        );
-
-        if (loginButtons.length > 0) {
-          submitButton = await page.evaluateHandle(() => {
-            const buttons = Array.from(document.querySelectorAll("button"));
-            return buttons.find(
-              (btn) =>
-                btn.textContent?.toLowerCase().includes("login") || btn.textContent?.toLowerCase().includes("sign in")
-            );
-          });
-        }
+          );
+        });
       }
 
+      // Last resort: try submit buttons
+      if (!submitButton || !submitButton.asElement()) {
+        submitButton = await page.$('button[type="submit"], input[type="submit"]');
+      }
+
+      // Log which button was selected
+      const selectedButtonInfo = await page.evaluate((btn) => {
+        if (!btn) return null;
+        return {
+          text: btn.textContent?.trim(),
+          type: btn.type,
+          id: btn.id,
+          className: btn.className,
+        };
+      }, submitButton);
+
+      logger.info("Selected submit button", {
+        requestId: this.requestId,
+        buttonInfo: selectedButtonInfo,
+      });
+
       if (!submitButton) {
+        // Log all available buttons for debugging
+        const availableButtons = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll("button")).map((btn) => ({
+            text: btn.textContent?.trim(),
+            type: btn.type,
+            id: btn.id,
+            className: btn.className,
+          }));
+        });
+
+        logger.error("No submit button found", {
+          requestId: this.requestId,
+          availableButtons,
+        });
+
         throw new Error("Login submit button not found");
       }
 
-      // Listen for network responses to catch the login API call
+      // Setup network and error monitoring
+      page.on("request", (request) => {
+        if (request.url().includes("login") && request.method() === "POST") {
+          logger.info("Login API request detected", {
+            requestId: this.requestId,
+            url: request.url(),
+          });
+        }
+      });
+
+      // Monitor JavaScript errors
+      page.on("pageerror", (error) => {
+        logger.warn("JavaScript error on page", {
+          requestId: this.requestId,
+          error: error.message,
+        });
+      });
+
+      page.on("console", (msg) => {
+        if (msg.type() === "error") {
+          logger.warn("Console error", {
+            requestId: this.requestId,
+            message: msg.text(),
+          });
+        }
+      });
+
+      // Listen for login API response
       const responsePromise = page.waitForResponse(
         (response) => response.url().includes("/users/login") && response.request().method() === "POST",
-        { timeout: 15000 }
+        { timeout: 30000 }
       );
 
-      // Click submit button
-      await submitButton.click();
+      // Click submit button and wait for API response
+      logger.info("Submitting login form", { requestId: this.requestId });
 
-      // Wait for login response
-      const loginResponse = await responsePromise;
-      const responseData = await loginResponse.json();
+      // Handle both traditional form submission and JavaScript-based submission
+      try {
+        await submitButton.click();
+
+        // Wait a moment for JavaScript to potentially intercept the form
+        await page.waitForTimeout(1000);
+
+        // Check if we're still on the same page (indicating JS-based form)
+        const currentUrl = page.url();
+        if (currentUrl.includes("/auth/login")) {
+          logger.info("Form appears to use JavaScript submission, waiting for navigation or API call");
+        }
+      } catch (clickError) {
+        logger.warn("Submit button click failed, trying alternative approach", {
+          requestId: this.requestId,
+          error: clickError.message,
+        });
+
+        // Fallback: try alternative submission methods
+        await page.evaluate(() => {
+          // Try to trigger the form submit event (for JavaScript event handlers)
+          const form = document.querySelector("form");
+          if (form) {
+            const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+            form.dispatchEvent(submitEvent);
+          }
+
+          // Also try clicking the login button with proper events
+          const loginBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+            btn.textContent?.toLowerCase().includes("login")
+          );
+          if (loginBtn) {
+            // Simulate full click sequence
+            loginBtn.focus();
+            const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true });
+            loginBtn.dispatchEvent(clickEvent);
+          }
+        });
+      }
+
+      // Additional fallback: Try pressing Enter on the password field (common user behavior)
+      try {
+        await page.focus('input[type="password"], input[name="password"]');
+        await page.keyboard.press("Enter");
+        logger.info("Tried Enter key submission as additional fallback");
+        await page.waitForTimeout(500);
+      } catch (enterError) {
+        logger.warn("Enter key fallback failed", {
+          requestId: this.requestId,
+          error: enterError.message,
+        });
+      }
+
+      // Wait for login response with fallback handling
+      let loginResponse;
+      let responseData;
+
+      try {
+        loginResponse = await responsePromise;
+        responseData = await loginResponse.json();
+
+        logger.info("Login API response received", {
+          requestId: this.requestId,
+          status: loginResponse.status(),
+          url: loginResponse.url(),
+          responseData: JSON.stringify(responseData, null, 2),
+        });
+      } catch (timeoutError) {
+        // If API response times out, check if login succeeded via navigation
+        logger.warn("Login API timeout, checking if navigation succeeded", {
+          requestId: this.requestId,
+        });
+
+        await page.waitForTimeout(3000);
+
+        const currentState = await page.evaluate(() => ({
+          currentUrl: window.location.href,
+          isLoginPage: window.location.href.includes("/auth/login"),
+          hasAuthToken: !!localStorage.getItem("authToken") || !!sessionStorage.getItem("authToken"),
+        }));
+
+        logger.info("Page state after login attempt", {
+          requestId: this.requestId,
+          ...currentState,
+        });
+
+        // If we're no longer on the login page, try to get token from storage
+        if (!currentState.isLoginPage) {
+          const tokenFromStorage = await page.evaluate(() => {
+            return (
+              localStorage.getItem("authToken") ||
+              sessionStorage.getItem("authToken") ||
+              localStorage.getItem("access_token") ||
+              sessionStorage.getItem("access_token")
+            );
+          });
+
+          if (tokenFromStorage) {
+            logger.info("Found auth token in browser storage");
+            return tokenFromStorage;
+          }
+        }
+
+        // Login failed - provide diagnostic info
+        const formData = await page.evaluate(() => {
+          const emailInput = document.querySelector('input[type="email"], input[name="email"]');
+          const passwordInput = document.querySelector('input[type="password"], input[name="password"]');
+          const form = document.querySelector("form");
+
+          return {
+            hasEmailValue: !!emailInput?.value,
+            hasPasswordValue: !!passwordInput?.value,
+            formAction: form?.action,
+            formMethod: form?.method,
+            submitButtons: Array.from(document.querySelectorAll('button, input[type="submit"]')).map((btn) => ({
+              text: btn.textContent?.trim(),
+              type: btn.type,
+              disabled: btn.disabled,
+            })),
+          };
+        });
+
+        logger.error("Login failed - form submission issue", {
+          requestId: this.requestId,
+          pageState: currentState,
+          formData,
+        });
+
+        throw new Error(`Login failed: Form submission timeout. Still on login page: ${currentState.isLoginPage}`);
+      }
 
       if (!loginResponse.ok()) {
         throw new Error(`Login failed: ${loginResponse.status()} ${loginResponse.statusText()}`);
@@ -276,35 +467,156 @@ class PuppeteerService {
         responseData.data?.token || responseData.accessToken || responseData.token || responseData.access_token;
 
       if (!accessToken) {
+        logger.error("Access token missing from response", {
+          requestId: this.requestId,
+          responseStructure: Object.keys(responseData),
+        });
         throw new Error("Login response missing access token");
       }
 
-      // Wait for any redirect/navigation to complete
-      await page.waitForTimeout(2000);
+      // Most importantly: verify that authentication cookies/tokens are actually stored in the browser
+      logger.info("Verifying browser authentication state", {
+        requestId: this.requestId,
+        tokenFromAPI: !!accessToken,
+      });
 
-      // Check final page state
-      const finalState = await page.evaluate(() => ({
-        currentUrl: window.location.href,
-        isLoginPage: window.location.href.includes("/auth/login"),
-      }));
+      // Check cookies, localStorage, and sessionStorage for authentication data
+      const browserAuthState = await page.evaluate(() => {
+        // Get all cookies
+        const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+          const [name, value] = cookie.trim().split("=");
+          if (name) acc[name] = value || "";
+          return acc;
+        }, {});
 
-      // If we're still on the login page, authentication failed
-      if (finalState.isLoginPage) {
-        throw new Error("Authentication failed - still on login page after form submission");
+        // Get localStorage tokens
+        const localStorageTokens = {};
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.toLowerCase().includes("token") || key.toLowerCase().includes("auth"))) {
+              localStorageTokens[key] = localStorage.getItem(key) ? "present" : "empty";
+            }
+          }
+        } catch (e) {
+          localStorageTokens.error = e.message;
+        }
+
+        // Get sessionStorage tokens
+        const sessionStorageTokens = {};
+        try {
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && (key.toLowerCase().includes("token") || key.toLowerCase().includes("auth"))) {
+              sessionStorageTokens[key] = sessionStorage.getItem(key) ? "present" : "empty";
+            }
+          }
+        } catch (e) {
+          sessionStorageTokens.error = e.message;
+        }
+
+        return {
+          cookies: Object.keys(cookies),
+          cookieDetails: cookies,
+          localStorageTokens,
+          sessionStorageTokens,
+          hasAuthCookie: Object.keys(cookies).some(
+            (name) =>
+              name.toLowerCase().includes("token") ||
+              name.toLowerCase().includes("auth") ||
+              name.toLowerCase().includes("session")
+          ),
+          hasStorageToken: Object.keys(localStorageTokens).length > 0 || Object.keys(sessionStorageTokens).length > 0,
+        };
+      });
+
+      logger.info("Browser authentication state", {
+        requestId: this.requestId,
+        ...browserAuthState,
+      });
+
+      // Verify we have authentication data stored in the browser
+      const hasAuthData = browserAuthState.hasAuthCookie || browserAuthState.hasStorageToken;
+
+      if (!hasAuthData) {
+        logger.warn("API succeeded but no authentication data found in browser storage", {
+          requestId: this.requestId,
+          apiToken: !!accessToken,
+          browserState: browserAuthState,
+        });
+
+        // Wait a bit longer for the frontend to process the login response
+        await page.waitForTimeout(3000);
+
+        // Check again
+        const secondCheck = await page.evaluate(() => {
+          const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+            const [name, value] = cookie.trim().split("=");
+            if (name) acc[name] = value || "";
+            return acc;
+          }, {});
+
+          return {
+            cookieCount: Object.keys(cookies).length,
+            hasAuthCookie: Object.keys(cookies).some(
+              (name) =>
+                name.toLowerCase().includes("token") ||
+                name.toLowerCase().includes("auth") ||
+                name.toLowerCase().includes("session")
+            ),
+          };
+        });
+
+        if (!secondCheck.hasAuthCookie) {
+          throw new Error(
+            `Authentication cookies not set in browser. API returned token but browser auth state invalid. Cookies: ${JSON.stringify(
+              browserAuthState.cookieDetails
+            )}`
+          );
+        }
+
+        logger.info("Authentication cookies found on second check", {
+          requestId: this.requestId,
+          secondCheck,
+        });
       }
 
-      logger.info("Browser-context authentication successful", {
+      logger.info("Authentication successful - browser has required auth data", {
         requestId: this.requestId,
-        finalUrl: finalState.currentUrl,
-        tokenReceived: !!accessToken,
+        tokenLength: accessToken.length,
+        authTime: Date.now() - startTime,
+        hasAuthCookie: browserAuthState.hasAuthCookie,
+        hasStorageToken: browserAuthState.hasStorageToken,
       });
+
+      // Remove event listeners to prevent memory leaks
+      page.removeAllListeners("request");
+      page.removeAllListeners("response");
+      page.removeAllListeners("pageerror");
+      page.removeAllListeners("console");
 
       return accessToken;
     } catch (error) {
       logger.error("Browser-context authentication failed", {
         requestId: this.requestId,
         error: error.message,
+        stack: error.stack,
+        totalTime: Date.now() - startTime,
       });
+
+      // Remove event listeners on error too
+      try {
+        page.removeAllListeners("request");
+        page.removeAllListeners("response");
+        page.removeAllListeners("pageerror");
+        page.removeAllListeners("console");
+      } catch (cleanupError) {
+        logger.warn("Failed to cleanup event listeners", {
+          requestId: this.requestId,
+          error: cleanupError.message,
+        });
+      }
+
       throw new Error(`Authentication failed: ${error.message}`);
     }
   }
